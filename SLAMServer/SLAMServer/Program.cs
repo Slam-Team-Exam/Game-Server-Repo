@@ -1,28 +1,50 @@
-﻿using System.Net;
+﻿using Microsoft.AspNetCore.Builder;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-// See https://aka.ms/new-console-template for more information
 
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+// -----------------------------
+// 1. Minimal API (HTTP)
+// -----------------------------
+app.MapGet("/health", () => "OK");
+app.MapGet("/status", () => new
+{
+    Time = DateTime.UtcNow,
+    Server = "SLAM Game Server"
+});
+
+// Start Kestrel **without blocking**
+var httpTask = app.RunAsync();   // Important: RunAsync()
+
+// -----------------------------
+// 2. Your TCP/WebSocket server
+// -----------------------------
 var ipEndPoint = new IPEndPoint(IPAddress.Any, 13);
 TcpListener listener = new(ipEndPoint);
+listener.Start();
 
-try
+Console.WriteLine("TCP/WebSocket server started on port 13.");
+
+_ = Task.Run(async () =>
 {
-    listener.Start();
+    while (true)
+    {
+        using TcpClient client = await listener.AcceptTcpClientAsync();
+        await using NetworkStream stream = client.GetStream();
 
-    using TcpClient handler = await listener.AcceptTcpClientAsync();
-    await using NetworkStream stream = handler.GetStream();
+        var message = $"📅 {DateTime.Now} 🕛";
+        var dateBytes = Encoding.UTF8.GetBytes(message);
+        await stream.WriteAsync(dateBytes);
 
-    var message = $"📅 {DateTime.Now} 🕛";
-    var dateTimeBytes = Encoding.UTF8.GetBytes(message);
-    await stream.WriteAsync(dateTimeBytes);
+        Console.WriteLine($"Sent message: \"{message}\"");
+    }
+});
 
-    Console.WriteLine($"Sent message: \"{message}\"");
-    // Sample output:
-    //     Sent message: "📅 8/22/2022 9:07:17 AM 🕛"
-}
-finally
-{
-    listener.Stop();
-}
+// -----------------------------
+// 3. Wait for shutdown
+// -----------------------------
+await httpTask;

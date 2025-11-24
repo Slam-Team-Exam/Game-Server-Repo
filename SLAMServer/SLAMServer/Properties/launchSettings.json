@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SLAMServer": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

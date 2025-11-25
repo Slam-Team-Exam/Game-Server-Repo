@@ -1,21 +1,21 @@
-FROM mcr.microsoft.com/dotnet/runtime:8.0 AS base
-WORKDIR /app
-
+# Use SDK to build the application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
+# Copy csproj and restore dependencies
 COPY ["SLAMServer.csproj", "."]
 RUN dotnet restore "SLAMServer.csproj"
 
+# Copy all source files and publish
 COPY . .
-RUN dotnet build "SLAMServer.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet publish "SLAMServer.csproj" -c Release -o /app/publish
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "SLAMServer.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
+# Use the ASP.NET runtime for running the app
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+# Copy published output from build stage
+COPY --from=build /app/publish .
+
+# Set the entrypoint
 ENTRYPOINT ["dotnet", "SLAMServer.dll"]

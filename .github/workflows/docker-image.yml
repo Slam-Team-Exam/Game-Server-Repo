@@ -1,0 +1,42 @@
+name: MainPipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Check .NET project version
+      working-directory: ./SLAMServer/SLAMServer
+      run: |
+        VERSION=$(grep -oPm1 "(?<=<Version>)[^<]+" SLAMServer.csproj)
+        echo "Found project version: $VERSION"
+        if [ -z "$VERSION" ]; then
+          echo "No <Version> found in SLAMServer.csproj!"
+          exit 1
+        fi
+
+    - name: Build .NET project
+      working-directory: ./SLAMServer/SLAMServer
+      run: dotnet build --configuration Release
+
+    - name: Publish .NET project
+      working-directory: ./SLAMServer/SLAMServer
+      run: dotnet publish -c Release -o ./publish
+
+    - name: Build Docker image
+      working-directory: ./SLAMServer/SLAMServer
+      run: docker build . -f Dockerfile -t slam-server:$(date +%s)

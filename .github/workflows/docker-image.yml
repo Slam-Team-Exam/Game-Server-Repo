@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -26,13 +28,11 @@ jobs:
         echo "CURRENT=$CURRENT" >> $GITHUB_ENV
         echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
-    - name: Fetch main branch
-      run: git fetch origin main
-
-    - name: Get project version in main branch
-      id: main_version
+    - name: Fetch default branch
       run: |
-        MAIN=$(git show origin/main:./SLAMServer/SLAMServer/SLAMServer.csproj | grep -oPm1 "(?<=<Version>)[^<]+")
+        DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
+        echo "Default branch is $DEFAULT_BRANCH"
+        git fetch origin $DEFAULT_BRANCH
         echo "MAIN=$MAIN" >> $GITHUB_ENV
         echo "main=$MAIN" >> $GITHUB_OUTPUT
 

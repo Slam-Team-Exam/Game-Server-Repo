@@ -19,16 +19,26 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
-    - name: Check .NET project version
-      working-directory: ./SLAMServer/SLAMServer
+    - name: Get project version in current branch
+      id: current_version
       run: |
-        VERSION=$(grep -oPm1 "(?<=<Version>)[^<]+" SLAMServer.csproj)
-        echo "Found project version: $VERSION"
-        if [ -z "$VERSION" ]; then
-          echo "No <Version> found in SLAMServer.csproj!"
+        CURRENT=$(grep -oPm1 "(?<=<Version>)[^<]+" ./SLAMServer/SLAMServer/SLAMServer.csproj)
+        echo "CURRENT=$CURRENT" >> $GITHUB_ENV
+        echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+    - name: Get project version in main branch
+      id: main_version
+      run: |
+        MAIN=$(git show origin/main:./SLAMServer/SLAMServer/SLAMServer.csproj | grep -oPm1 "(?<=<Version>)[^<]+")
+        echo "MAIN=$MAIN" >> $GITHUB_ENV
+        echo "main=$MAIN" >> $GITHUB_OUTPUT
+
+    - name: Ensure version has been bumped
+      run: |
+        if [ "$CURRENT" = "$MAIN" ]; then
+          echo "ERROR: Version has not been updated from main branch ($CURRENT)"
           exit 1
         fi
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
 
     - name: Build .NET project
       working-directory: ./SLAMServer/SLAMServer

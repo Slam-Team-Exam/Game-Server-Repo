@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
+    - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Fetch full history to access all branches
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -27,19 +27,27 @@ jobs:
         CURRENT=$(grep -oPm1 "(?<=<Version>)[^<]+" ./SLAMServer/SLAMServer/SLAMServer.csproj)
         echo "CURRENT=$CURRENT" >> $GITHUB_ENV
         echo "current=$CURRENT" >> $GITHUB_OUTPUT
+        echo "Current branch version: $CURRENT"
 
-    - name: Fetch default branch
+    - name: Fetch default branch and get version
+      id: main_version
       run: |
         DEFAULT_BRANCH=${{ github.event.repository.default_branch }}
         echo "Default branch is $DEFAULT_BRANCH"
+
+        # Fetch the default branch from origin
         git fetch origin $DEFAULT_BRANCH
+
+        # Get the version from the default branch .csproj
+        MAIN=$(git show origin/$DEFAULT_BRANCH:./SLAMServer/SLAMServer/SLAMServer.csproj | grep -oPm1 "(?<=<Version>)[^<]+")
         echo "MAIN=$MAIN" >> $GITHUB_ENV
         echo "main=$MAIN" >> $GITHUB_OUTPUT
+        echo "Default branch version: $MAIN"
 
     - name: Ensure version has been bumped
       run: |
         if [ "$CURRENT" = "$MAIN" ]; then
-          echo "ERROR: Version has not been updated from main branch ($CURRENT)"
+          echo "ERROR: Version has not been updated from default branch ($CURRENT)"
           exit 1
         fi
 
@@ -58,10 +66,10 @@ jobs:
       working-directory: ./SLAMServer/SLAMServer
       run: |
         docker build . -f Dockerfile \
-          -t ${{ secrets.docker_hub_name }}/game-server:${VERSION} \
+          -t ${{ secrets.docker_hub_name }}/game-server:${CURRENT} \
           -t ${{ secrets.docker_hub_name }}/game-server:latest
 
     - name: Push Docker image
       run: |
-        docker push ${{ secrets.docker_hub_name }}/game-server:${VERSION}
+        docker push ${{ secrets.docker_hub_name }}/game-server:${CURRENT}
         docker push ${{ secrets.docker_hub_name }}/game-server:latest

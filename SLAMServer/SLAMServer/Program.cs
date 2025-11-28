@@ -10,6 +10,7 @@ var app = builder.Build();
 // -----------------------------
 // 1. Minimal API (HTTP)
 // -----------------------------
+builder.WebHost.UseUrls("http://0.0.0.0:5001");
 app.MapGet("/health", () => "OK");
 app.MapGet("/status", () => new
 {

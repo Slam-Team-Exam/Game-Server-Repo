@@ -45,6 +45,7 @@ jobs:
         echo "Default branch version: $MAIN"
 
     - name: Ensure version has been bumped
+      if: ${{ github.ref != 'refs/heads/' + github.event.repository.default_branch }}
       run: |
         if [ "$CURRENT" = "$MAIN" ]; then
           echo "ERROR: Version has not been updated from default branch ($CURRENT)"

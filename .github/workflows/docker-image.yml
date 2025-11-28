@@ -26,6 +26,9 @@ jobs:
         echo "CURRENT=$CURRENT" >> $GITHUB_ENV
         echo "current=$CURRENT" >> $GITHUB_OUTPUT
 
+    - name: Fetch main branch
+      run: git fetch origin main
+
     - name: Get project version in main branch
       id: main_version
       run: |
